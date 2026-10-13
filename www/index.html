@@ -1,0 +1,948 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atomic Habits Tracker</title>
+<style>
+@font-face { font-family: "Familjen Grotesk"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/familjen-grotesk-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Familjen Grotesk"; font-style: normal; font-weight: 500; font-display: swap; src: url("fonts/familjen-grotesk-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Familjen Grotesk"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/familjen-grotesk-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Familjen Grotesk"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/familjen-grotesk-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "Newsreader"; font-style: italic; font-weight: 400; font-display: swap; src: url("fonts/newsreader-latin-400-italic.woff2") format("woff2"); }
+@font-face { font-family: "Newsreader"; font-style: italic; font-weight: 500; font-display: swap; src: url("fonts/newsreader-latin-500-italic.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/jetbrains-mono-latin-600-normal.woff2") format("woff2"); }
+
+html { color-scheme: light; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+:root { padding-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px)); padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+
+</style>
+<style>
+/* Layout: a single working column. Summary strip on top, then two ledgers (build / break), each habit a row with a 14-day tally strip. */
+:root {
+  --bg: #F2F4F1;
+  --surface: #FFFFFF;
+  --ink: #16201B;
+  --muted: #5B6861;
+  --line: #D9DFDA;
+  --build: #2C6B4D;
+  --build-soft: #DCEBE2;
+  --break: #3E4E8C;
+  --break-soft: #E0E4F3;
+  --warn: #8F6110;
+  --warn-soft: #F5EBD4;
+  --focus: #2C6B4D;
+  --font-display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-voice: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-data: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1412; --surface: #171E1A; --ink: #E5EBE7; --muted: #94A199; --line: #29342E;
+    --build: #6FC79B; --build-soft: #1B3326; --break: #9AAAF0; --break-soft: #1F2540;
+    --warn: #E2B45E; --warn-soft: #3A2E15; --focus: #6FC79B; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1412; --surface: #171E1A; --ink: #E5EBE7; --muted: #94A199; --line: #29342E;
+  --build: #6FC79B; --build-soft: #1B3326; --break: #9AAAF0; --break-soft: #1F2540;
+  --warn: #E2B45E; --warn-soft: #3A2E15; --focus: #6FC79B; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); padding: 0 16px; }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: 28px 56px; display: flex; flex-direction: column; gap: 28px; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Header */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.eyebrow { font: 600 11px/1 var(--font-data); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+h1 { font: 700 clamp(28px, 6vw, 40px)/1.05 var(--font-display); letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 9px 16px; font-weight: 600; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.primary:hover { opacity: .9; }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* Summary */
+.summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.summary > div { padding: 14px 16px; min-width: 0; }
+.summary > div + div { border-left: 1px solid var(--line); }
+.summary .num { font: 600 26px/1.1 var(--font-data); font-variant-numeric: tabular-nums; }
+.summary .lbl { font-size: 13px; color: var(--muted); }
+@media (max-width: 520px) {
+  .summary { grid-template-columns: 1fr; }
+  .summary > div + div { border-left: 0; border-top: 1px solid var(--line); }
+  .summary > div { display: flex; align-items: baseline; gap: 10px; }
+}
+
+/* Sections */
+.ledger { display: flex; flex-direction: column; gap: 12px; }
+.ledger-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ledger-head h2 { font: 700 20px/1.2 var(--font-display); margin: 0; display: flex; align-items: center; gap: 10px; }
+.ledger-head h2::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--k); }
+.ledger-head p { margin: 0; color: var(--muted); font-size: 13px; }
+.ledger[data-kind="build"] { --k: var(--build); --k-soft: var(--build-soft); }
+.ledger[data-kind="break"] { --k: var(--break); --k-soft: var(--break-soft); }
+.list { display: flex; flex-direction: column; gap: 10px; }
+.none { color: var(--muted); font-size: 14px; padding: 14px 16px; border: 1px dashed var(--line); border-radius: var(--radius); margin: 0; }
+
+/* Habit row */
+.habit { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.habit-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.check { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--k); background: transparent; display: grid; place-items: center; transition: background .15s, transform .1s; }
+.check svg { width: 20px; height: 20px; stroke: var(--k); stroke-width: 3; fill: none; opacity: .28; }
+.check[aria-pressed="true"] { background: var(--k); }
+.check[aria-pressed="true"] svg { stroke: var(--surface); opacity: 1; }
+.check:active { transform: scale(.94); }
+.habit h3 { margin: 0; font: 600 17px/1.25 var(--font-display); overflow-wrap: anywhere; }
+.identity { margin: 2px 0 0; font: italic 400 15px/1.35 var(--font-voice); color: var(--muted); overflow-wrap: anywhere; }
+.stats { display: flex; gap: 14px; text-align: right; }
+.stat b { display: block; font: 600 18px/1 var(--font-data); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+
+.strip { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 4px; }
+.cell { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; padding: 0; }
+.cell i { display: block; width: 100%; max-width: 30px; aspect-ratio: 1; border-radius: 4px; background: var(--bg); border: 1px solid var(--line); }
+.cell.on i { background: var(--k); border-color: var(--k); }
+.cell.today i { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--k); }
+.cell small { font: 400 10px/1 var(--font-data); color: var(--muted); }
+.cell:hover i { border-color: var(--k); }
+
+.nudge { display: inline-flex; align-self: flex-start; gap: 8px; align-items: center; font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 999px; }
+.nudge.warn { background: var(--warn-soft); color: var(--warn); }
+.nudge.fresh { background: var(--k-soft); color: var(--k); }
+
+.habit-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+details.plan { flex: 1 1 100%; }
+details.plan summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); list-style: none; display: inline-flex; gap: 6px; align-items: center; }
+details.plan summary::-webkit-details-marker { display: none; }
+details.plan summary::before { content: "+"; font-family: var(--font-data); }
+details.plan[open] summary::before { content: "–"; }
+.laws { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; margin: 10px 0 0; }
+.laws div { min-width: 0; }
+.laws dt { font: 600 11px/1.3 var(--font-data); letter-spacing: .06em; text-transform: uppercase; color: var(--k); }
+.laws dd { margin: 2px 0 0; font-size: 14px; overflow-wrap: anywhere; }
+.laws dd.empty { color: var(--muted); font-style: italic; }
+@media (max-width: 520px) { .laws { grid-template-columns: 1fr; } .stats { gap: 10px; } }
+.linkbtn { background: none; border: 0; padding: 4px 0; font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.linkbtn:hover { color: var(--ink); }
+
+/* Starter panel */
+.starter { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.starter h2 { margin: 0; font: 700 20px/1.2 var(--font-display); }
+.starter > p { margin: 0; color: var(--muted); max-width: 60ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 7px 12px; font-size: 14px; display: inline-flex; gap: 8px; align-items: center; }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+.chip[data-kind="build"] { --c: var(--build); }
+.chip[data-kind="break"] { --c: var(--break); }
+.chip:hover:not(:disabled) { border-color: var(--c); }
+.chip:disabled { opacity: .5; cursor: default; }
+.starter .sub { font: 600 11px/1 var(--font-data); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+
+/* Method reference */
+.method { border-top: 1px solid var(--line); padding-top: 24px; display: flex; flex-direction: column; gap: 16px; }
+.method h2 { margin: 0; font: 700 18px/1.2 var(--font-display); }
+.method-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.method-grid h3 { margin: 0 0 8px; font: 600 11px/1 var(--font-data); letter-spacing: .1em; text-transform: uppercase; }
+.method-grid ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.method-grid ol b { font-weight: 600; }
+.method .rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; font-size: 14px; }
+.method .rules b { display: block; font-weight: 600; margin-bottom: 2px; }
+.method .rules p { margin: 0; color: var(--muted); }
+@media (max-width: 600px) { .method-grid, .method .rules { grid-template-columns: 1fr; } }
+.savenote { font-size: 12px; color: var(--muted); margin: 0; }
+
+/* Templates */
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg { position: relative; }
+.tpl-list { display: flex; flex-direction: column; gap: 20px; }
+.tpl-cat { font: 600 11px/1 var(--font-data); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 4px; }
+.tpl { --k: var(--build); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: start; padding: 12px 0; border-top: 1px solid var(--line); }
+.tpl[data-kind="break"] { --k: var(--break); }
+.tpl h3 { margin: 0; font: 600 16px/1.3 var(--font-display); overflow-wrap: anywhere; }
+.tpl details.plan { grid-column: 1 / -1; }
+.tpl .btn { padding: 6px 14px; font-size: 14px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--line); margin-block: -8px 0; }
+.tab { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 10px 2px; font-weight: 600; color: var(--muted); }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.view { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+
+/* History */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel h2 { margin: 0; font: 700 18px/1.2 var(--font-display); }
+.panel .cap { margin: 0; color: var(--muted); font-size: 13px; max-width: 70ch; }
+.chart { width: 100%; height: auto; display: block; }
+.chart text { font: 400 11px var(--font-data); fill: var(--muted); }
+.chart .val { fill: var(--ink); font-weight: 600; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .bar { fill: var(--build); }
+.chart .bar.part { fill: var(--build-soft); stroke: var(--build); stroke-width: 1.5; }
+.heat { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: repeat(7, auto); grid-auto-flow: column; gap: 3px; max-width: 460px; }
+.heat i { display: block; aspect-ratio: 1; border-radius: 3px; background: var(--bg); border: 1px solid var(--line); }
+.heat i.fut { background: transparent; border-style: dashed; opacity: .45; }
+.heat i.none { opacity: .45; }
+.heat i.on { border-color: transparent; }
+.legend { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+.legend i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; border: 1px solid var(--line); background: var(--bg); }
+.legend span { margin-inline: 4px; }
+.hlist { display: flex; flex-direction: column; }
+.hrow { --k: var(--build); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line); }
+.hrow:first-child { border-top: 0; padding-top: 4px; }
+.hrow[data-kind="break"] { --k: var(--break); }
+.hname { font-weight: 600; display: flex; gap: 8px; align-items: baseline; min-width: 0; overflow-wrap: anywhere; }
+.hname::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 2px; background: var(--k); transform: translateY(-1px); }
+.spark { display: flex; align-items: flex-end; gap: 2px; height: 32px; width: 132px; }
+.spark i { flex: 1; background: var(--k); border-radius: 1px; min-height: 2px; }
+.spark i.z { background: var(--line); height: 2px; }
+.hstats { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 13px; color: var(--muted); }
+.hstats b { font: 600 13px var(--font-data); color: var(--ink); font-variant-numeric: tabular-nums; }
+.delta { font: 600 12px var(--font-data); }
+.delta.up { color: var(--build); }
+.delta.down { color: var(--warn); }
+.tl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tl li { display: grid; grid-template-columns: 84px 74px minmax(0, 1fr); gap: 4px 12px; padding: 11px 0; border-top: 1px solid var(--line); font-size: 14px; align-items: baseline; }
+.tl li:first-child { border-top: 0; }
+.tl .when { font: 400 12px var(--font-data); color: var(--muted); }
+.tl .what { min-width: 0; overflow-wrap: anywhere; }
+.tl .what small { display: block; color: var(--muted); font-size: 13px; }
+.tag { font: 600 10px/1 var(--font-data); letter-spacing: .08em; text-transform: uppercase; padding: 5px 7px; border-radius: 4px; justify-self: start; }
+.tag.good { background: var(--build-soft); color: var(--build); }
+.tag.warn { background: var(--warn-soft); color: var(--warn); }
+.tag.edit { background: var(--break-soft); color: var(--break); }
+@media (max-width: 520px) {
+  .tl li { grid-template-columns: 78px minmax(0, 1fr); }
+  .tl .what { grid-column: 2; }
+  .spark { width: 100px; }
+}
+
+/* Dialog */
+dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); padding: 0; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
+dialog::backdrop { background: rgba(10, 16, 13, .45); }
+.form { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.form h2 { margin: 0; font: 700 20px/1.2 var(--font-display); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 3px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { text-align: center; padding: 7px 10px; border-radius: 999px; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--muted); }
+.seg input:checked + label { background: var(--ink); color: var(--bg); }
+.seg input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: 2px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-weight: 600; font-size: 14px; }
+.field .help { font-size: 12.5px; color: var(--muted); margin: 0; }
+.field input, .field textarea { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 9px 11px; width: 100%; }
+.field textarea { resize: vertical; min-height: 44px; }
+.lawhead { font: 600 11px/1 var(--font-data); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 4px 0 -6px; }
+.form-actions { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 16px; }
+.form-actions .right { display: flex; gap: 8px; margin-left: auto; }
+.btn.danger { color: var(--warn); }
+.btn.danger.armed { background: var(--warn); color: var(--surface); border-color: var(--warn); }
+
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; max-width: calc(100vw - 32px); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow" id="today-label">Today</p>
+      <h1>Atomic Habits Tracker</h1>
+    </div>
+    <div class="actions">
+      <button class="btn tpl-open" type="button" id="tpl-btn" data-act="tpl-open" data-k="build">Templates</button>
+      <button class="btn primary" id="add-btn" type="button">Add a habit</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <button class="tab" type="button" role="tab" id="tab-today" data-act="tab" data-v="today" aria-selected="true">Today</button>
+    <button class="tab" type="button" role="tab" id="tab-history" data-act="tab" data-v="history" aria-selected="false">History</button>
+  </nav>
+
+  <div class="view" id="view-today">
+  <section class="summary" aria-label="Today at a glance">
+    <div><span class="num" id="sum-today">0/0</span><span class="lbl">done today</span></div>
+    <div><span class="num" id="sum-week">0</span><span class="lbl">votes cast this week</span></div>
+    <div><span class="num" id="sum-best">0</span><span class="lbl">longest current streak</span></div>
+  </section>
+
+  <section class="starter" id="starter">
+    <div>
+      <h2>Start with one tiny habit</h2>
+    </div>
+    <p>Pick a starter below and edit it to fit your life, or write your own. Each habit gets a four-law plan, a daily check-in and a 14-day record. Every check is a vote for the person you want to become.</p>
+    <div>
+      <p class="sub">Habits to build</p>
+      <div class="chips" id="chips-build"></div>
+    </div>
+    <div>
+      <p class="sub">Habits to break</p>
+      <div class="chips" id="chips-break"></div>
+    </div>
+    <div>
+      <button class="btn tpl-open" type="button" data-act="tpl-open" data-k="build" disabled>Browse all templates</button>
+    </div>
+    <p class="savenote" id="connecting">Loading your habits…</p>
+  </section>
+
+  <section class="ledger" data-kind="build" id="ledger-build">
+    <div class="ledger-head">
+      <h2>Habits to build</h2>
+      <p>Tick the circle when you've done it today.</p>
+    </div>
+    <div class="list" id="list-build"></div>
+  </section>
+
+  <section class="ledger" data-kind="break" id="ledger-break">
+    <div class="ledger-head">
+      <h2>Habits to break</h2>
+      <p>Tick the circle for every clean day.</p>
+    </div>
+    <div class="list" id="list-break"></div>
+  </section>
+
+  <section class="method" aria-labelledby="method-h">
+    <h2 id="method-h">The method</h2>
+    <div class="method-grid">
+      <div>
+        <h3 style="color: var(--build)">To build a habit</h3>
+        <ol>
+          <li><b>Make it obvious.</b> Tie it to a time, a place or a habit you already do.</li>
+          <li><b>Make it attractive.</b> Pair it with something you look forward to.</li>
+          <li><b>Make it easy.</b> Shrink it to a two-minute version.</li>
+          <li><b>Make it satisfying.</b> Reward yourself right away.</li>
+        </ol>
+      </div>
+      <div>
+        <h3 style="color: var(--break)">To break a habit</h3>
+        <ol>
+          <li><b>Make it invisible.</b> Remove the cue from your surroundings.</li>
+          <li><b>Make it unattractive.</b> Spell out what it really costs you.</li>
+          <li><b>Make it difficult.</b> Put more steps between you and it.</li>
+          <li><b>Make it unsatisfying.</b> Find someone to hold you to account.</li>
+        </ol>
+      </div>
+    </div>
+    <div class="rules">
+      <div><b>Never miss twice</b><p>One missed day is an accident. Two is the start of a new pattern. The tracker flags it.</p></div>
+      <div><b>Votes, not streaks</b><p>Each check is evidence for your new identity. The total keeps counting even after a slip.</p></div>
+      <div><b>1% better</b><p>Getting 1% better every day for a year compounds to roughly 37 times better.</p></div>
+    </div>
+    <p class="savenote" id="savenote"></p>
+  </section>
+  </div>
+
+  <div class="view" id="view-history" hidden>
+    <p class="none" id="hist-empty" hidden>Nothing to look back on yet. Add a habit and check it off on the Today tab. This page fills in as you go.</p>
+    <div class="view" id="hist-main">
+      <section class="summary" aria-label="Recent change">
+        <div><span class="num" id="hs-votes">0</span><span class="lbl" id="hs-votes-l">votes in the last 7 days</span></div>
+        <div><span class="num" id="hs-rate">–</span><span class="lbl">of planned days done, last 30 days</span></div>
+        <div><span class="num" id="hs-best">0</span><span class="lbl">longest streak so far</span></div>
+      </section>
+
+      <section class="panel">
+        <h2>Weekly consistency</h2>
+        <p class="cap" id="week-cap"></p>
+        <div id="week-chart"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Daily record</h2>
+        <p class="cap">The last 12 weeks. Each column is a week, Monday to Sunday, oldest on the left. Darker means more of your habits done that day.</p>
+        <div class="heat" id="heat" role="img" aria-label="Heatmap of daily habit completion over the last 12 weeks"></div>
+        <div class="legend" aria-hidden="true">Less <span></span><i style="background: color-mix(in srgb, var(--build) 25%, var(--surface))"></i><i style="background: color-mix(in srgb, var(--build) 50%, var(--surface))"></i><i style="background: color-mix(in srgb, var(--build) 75%, var(--surface))"></i><i style="background: var(--build)"></i><span></span> More</div>
+      </section>
+
+      <section class="panel">
+        <h2>Each habit</h2>
+        <p class="cap">Bars show days done per week over 12 weeks, newest on the right.</p>
+        <div class="hlist" id="hab-rows"></div>
+      </section>
+
+      <section class="panel">
+        <h2>What changed</h2>
+        <p class="cap" id="tl-cap">Milestones and broken streaks are worked out from your check-ins. Habits you add, edit or remove are logged from now on.</p>
+        <ul class="tl" id="tl"></ul>
+        <button class="btn" type="button" id="tl-more" data-act="tl-more" hidden>Show older</button>
+      </section>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlg-title">
+  <form class="form" id="form" method="dialog" novalidate>
+    <h2 id="dlg-title">New habit</h2>
+    <div class="seg" role="radiogroup" aria-label="Habit type">
+      <input type="radio" name="kind" id="kind-build" value="build" checked><label for="kind-build">Build a good habit</label>
+      <input type="radio" name="kind" id="kind-break" value="break"><label for="kind-break">Break a bad habit</label>
+    </div>
+    <div class="field">
+      <label for="f-name" id="f-name-label">Habit</label>
+      <input id="f-name" name="name" required maxlength="80" placeholder="Read one page">
+    </div>
+    <div class="field">
+      <label for="f-identity">Who does this make you?</label>
+      <p class="help">Identity first. Finish the sentence “I am someone who…” or “I am a…”.</p>
+      <input id="f-identity" name="identity" maxlength="120" placeholder="I am a reader">
+    </div>
+    <p class="lawhead">Your four-law plan</p>
+    <div class="field">
+      <label for="f-l1" id="f-l1-label"></label>
+      <p class="help" id="f-l1-help"></p>
+      <textarea id="f-l1" name="l1" rows="2" maxlength="300"></textarea>
+    </div>
+    <div class="field">
+      <label for="f-l2" id="f-l2-label"></label>
+      <p class="help" id="f-l2-help"></p>
+      <textarea id="f-l2" name="l2" rows="2" maxlength="300"></textarea>
+    </div>
+    <div class="field">
+      <label for="f-l3" id="f-l3-label"></label>
+      <p class="help" id="f-l3-help"></p>
+      <textarea id="f-l3" name="l3" rows="2" maxlength="300"></textarea>
+    </div>
+    <div class="field">
+      <label for="f-l4" id="f-l4-label"></label>
+      <p class="help" id="f-l4-help"></p>
+      <textarea id="f-l4" name="l4" rows="2" maxlength="300"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn danger" type="button" id="del-btn" hidden>Delete habit</button>
+      <div class="right">
+        <button class="btn" type="button" id="cancel-btn">Cancel</button>
+        <button class="btn primary" type="submit" id="save-btn">Save habit</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="tdlg" aria-labelledby="tdlg-title">
+  <div class="form">
+    <h2 id="tdlg-title">Habit templates</h2>
+    <p class="cap" style="margin:0;color:var(--muted);font-size:13px">Each template comes with an identity and a four-law plan. Add one, then edit it to fit your life.</p>
+    <div class="seg" role="radiogroup" aria-label="Template type">
+      <input type="radio" name="tkind" id="tkind-build" value="build" checked><label for="tkind-build">Build a good habit</label>
+      <input type="radio" name="tkind" id="tkind-break" value="break"><label for="tkind-break">Break a bad habit</label>
+    </div>
+    <div class="tpl-list" id="tpl-list"></div>
+    <div class="form-actions">
+      <div class="right"><button class="btn primary" type="button" id="tclose-btn">Done</button></div>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function () {
+  "use strict";
+
+  const LAWS = {
+    build: [
+      ["Make it obvious", "Habit stacking: “After I [current habit], I will [new habit].” Or name a time and place.", "After I pour my morning coffee, I will read one page."],
+      ["Make it attractive", "Pair it with something you enjoy, or join people for whom this is normal.", "Only have my favourite coffee while I read."],
+      ["Make it easy", "The two-minute version. Shrink it until it's hard to say no, and cut the friction.", "Leave the book on the kitchen table. One page counts."],
+      ["Make it satisfying", "Give yourself an immediate reward. Ticking it off here counts.", "Tick it off and keep the streak going."]
+    ],
+    break: [
+      ["Make it invisible", "Remove the cue. Change your surroundings so you rarely see the trigger.", "Charge my phone in the kitchen overnight."],
+      ["Make it unattractive", "Reframe it. Write down what it really costs you.", "Scrolling in bed costs me an hour of sleep and a groggy morning."],
+      ["Make it difficult", "Add friction. Put more steps between you and the habit.", "Log out of social apps and move them off the home screen."],
+      ["Make it unsatisfying", "Find an accountability partner or attach a small, immediate cost.", "Text my brother each morning. If I slip, I owe him a coffee."]
+    ]
+  };
+
+  const STARTERS = [
+    { kind: "build", cat: "Health", name: "Drink a glass of water", identity: "I am someone who looks after my body", l1: "After I switch off my alarm, I will drink a glass of water.", l2: "Keep a glass or bottle I like by the bed.", l3: "Fill it the night before. One glass is the whole habit.", l4: "Tick it off before I look at my phone." },
+    { kind: "build", cat: "Health", name: "Move for two minutes", identity: "I am someone who moves every day", l1: "After I get home from work, I will put on my running shoes.", l2: "Save my favourite podcast for walks only.", l3: "Lay out my kit the night before. Shoes on and out the door counts.", l4: "Tick it off and log how I felt afterwards.", feat: true },
+    { kind: "build", cat: "Health", name: "Eat a vegetable with dinner", identity: "I am someone who eats well", l1: "When I plate up dinner, I will add one vegetable first.", l2: "Cook it the way I like it best, roasted or with a sauce I enjoy.", l3: "Keep frozen veg in the freezer so it takes two minutes.", l4: "Tick it off and enjoy the plate." },
+    { kind: "build", cat: "Health", name: "Lights out by 11", identity: "I am someone who protects my sleep", l1: "At 10:30pm, I will start winding down: lights low and phone on charge.", l2: "Make bedtime cosy with fresh sheets and a book I'm looking forward to.", l3: "Set a bedtime alarm so I don't have to remember.", l4: "Tick it off and notice how I feel in the morning." },
+    { kind: "build", cat: "Health", name: "Stretch for one minute", identity: "I am someone who looks after my body", l1: "After I brush my teeth, I will stretch for one minute.", l2: "Play one song I like while I do it.", l3: "Roll out the mat the night before. One stretch counts.", l4: "Tick it off and notice how much looser I feel." },
+    { kind: "build", cat: "Mind", name: "Read one page", identity: "I am a reader", l1: "After I pour my morning coffee, I will read one page.", l2: "Read in my favourite chair with that first coffee.", l3: "Keep the book on the kitchen table. One page counts as done.", l4: "Tick it off straight away and watch the streak grow.", feat: true },
+    { kind: "build", cat: "Mind", name: "Meditate for one minute", identity: "I am a calm, focused person", l1: "After I sit down at my desk, I will meditate for one minute.", l2: "Do it with my first cup of tea.", l3: "One minute with a timer. No app, no setup.", l4: "Tick it off before opening email.", feat: true },
+    { kind: "build", cat: "Mind", name: "Write one line in a journal", identity: "I am someone who reflects", l1: "After I brush my teeth at night, I will write one line.", l2: "Use a notebook I like the look of.", l3: "Notebook and pen live on my pillow.", l4: "Tick it off and read last week's lines on Sundays.", feat: true },
+    { kind: "build", cat: "Mind", name: "Note one good thing", identity: "I am someone who notices the good", l1: "After I sit down for dinner, I will say one good thing from the day.", l2: "Share it with whoever is at the table, or write it down with a drink I like.", l3: "One sentence is enough.", l4: "Tick it off and look back over the list on Sundays." },
+    { kind: "build", cat: "Mind", name: "Practise a language for five minutes", identity: "I am a language learner", l1: "After I finish lunch, I will do one five-minute lesson.", l2: "Pick topics I enjoy, like food or music.", l3: "Put the app on my home screen. One lesson counts.", l4: "Tick it off and keep the streak going." },
+    { kind: "build", cat: "Work", name: "Write my top three tasks", identity: "I am someone who works on what matters", l1: "After I open my laptop, I will write down my top three tasks.", l2: "Use a pen and notebook I enjoy.", l3: "Three lines on a sticky note. No need for a perfect plan.", l4: "Tick it off, then cross the tasks out as I finish them." },
+    { kind: "build", cat: "Work", name: "25 minutes of focused work", identity: "I am someone who does deep work", l1: "After my first coffee, I will work on one task for 25 minutes.", l2: "Play the same focus playlist every time.", l3: "Phone in another room, one tab open, timer set.", l4: "Tick it off and take a proper break." },
+    { kind: "build", cat: "Work", name: "Clear my desk", identity: "I am someone who keeps a clear workspace", l1: "Before I close my laptop, I will clear my desk.", l2: "Keep a plant or something nice on the clear space.", l3: "Two minutes. Just cups and loose papers.", l4: "Tick it off and enjoy a clear desk tomorrow." },
+    { kind: "build", cat: "Home and money", name: "Make the bed", identity: "I am someone who starts the day with a win", l1: "After I get out of bed, I will make it.", l2: "Buy bedding I like the look of.", l3: "Keep it simple: one duvet, no extra cushions.", l4: "Tick it off and enjoy walking back into a neat room." },
+    { kind: "build", cat: "Home and money", name: "Tidy for two minutes", identity: "I am someone who keeps a calm home", l1: "After I finish dinner, I will tidy for two minutes.", l2: "Put on a song I like and tidy until it ends.", l3: "Keep a basket in each room so things have a home.", l4: "Tick it off and look at the clear surface." },
+    { kind: "build", cat: "Home and money", name: "Log today's spending", identity: "I am someone who knows where my money goes", l1: "After I brush my teeth at night, I will log what I spent.", l2: "Use a simple app I enjoy opening.", l3: "Log only the total. Detail can wait.", l4: "Tick it off and review the week on Sundays." },
+    { kind: "build", cat: "Home and money", name: "Pack tomorrow's bag", identity: "I am someone who is ready for tomorrow", l1: "After I finish dinner, I will pack my bag for tomorrow.", l2: "Think of it as the start of tomorrow's good day.", l3: "Keep the bag and keys by the door.", l4: "Tick it off and enjoy a calmer morning." },
+    { kind: "build", cat: "Connection", name: "Message a friend", identity: "I am a good friend", l1: "After my lunch break, I will message one friend.", l2: "Pick someone whose replies I enjoy.", l3: "A sentence or a voice note is enough.", l4: "Tick it off and enjoy the reply." },
+    { kind: "build", cat: "Connection", name: "Say one thing I appreciate", identity: "I am someone who shows appreciation", l1: "When I sit down for dinner, I will tell someone one thing I appreciate about them.", l2: "Notice how it lifts their mood and mine.", l3: "One sentence. No speech needed.", l4: "Tick it off." },
+    { kind: "break", cat: "Screens", name: "Phone in bed", identity: "I am someone who protects my sleep", l1: "Charge my phone in the kitchen overnight.", l2: "Scrolling in bed costs me an hour of sleep and a groggy morning.", l3: "Buy a cheap alarm clock so I don't need the phone in the bedroom.", l4: "Tell a friend. If I slip, I owe them a coffee.", feat: true },
+    { kind: "break", cat: "Screens", name: "Doomscrolling news", identity: "I am someone who chooses where my attention goes", l1: "Delete news apps from my phone's home screen.", l2: "Remind myself it leaves me anxious, not informed.", l3: "Use a site blocker on weekdays before 6pm.", l4: "Share my weekly clean-day count with a friend.", feat: true },
+    { kind: "break", cat: "Screens", name: "Checking my phone first thing", identity: "I am someone who starts the day on my own terms", l1: "Charge my phone outside the bedroom so it isn't the first thing I see.", l2: "Remind myself that the first hour sets the tone and email can wait.", l3: "Keep the phone in another room until after breakfast.", l4: "Tick off every clean morning and notice how I feel." },
+    { kind: "break", cat: "Screens", name: "Social media at work", identity: "I am someone who protects my focus", l1: "Log out of social apps and hide them in a folder.", l2: "Remind myself that each check costs me minutes of focus.", l3: "Use a site blocker during work hours.", l4: "Share my clean-day count with a colleague." },
+    { kind: "break", cat: "Screens", name: "Binge-watching late", identity: "I am someone who protects my sleep", l1: "Turn the TV off at the wall each evening.", l2: "Remind myself the next episode isn't worth a tired morning.", l3: "Log out of streaming accounts every night.", l4: "Tell someone my cut-off time and report back." },
+    { kind: "break", cat: "Food and drink", name: "Late-night snacking", identity: "I am someone who eats well", l1: "Keep crisps and sweets out of the house. Fruit goes on the counter.", l2: "Notice how sluggish I feel the next morning.", l3: "Brush my teeth right after dinner.", l4: "Track every clean evening here.", feat: true },
+    { kind: "break", cat: "Food and drink", name: "Sugary drinks", identity: "I am someone who drinks water first", l1: "Keep sugary drinks out of the house. Keep water and sparkling water in the fridge.", l2: "Remind myself of the sugar crash an hour later.", l3: "Don't buy them. If I want one, I have to go to the shop.", l4: "Track every clean day and treat myself to something nice each week." },
+    { kind: "break", cat: "Food and drink", name: "Caffeine after 2pm", identity: "I am someone who protects my sleep", l1: "Switch to decaf or herbal tea after lunch. Hide the coffee pods.", l2: "Remember that afternoon coffee wrecks my sleep and my next day.", l3: "Put the coffee machine out of reach after 2pm.", l4: "Tick off every clean afternoon and notice how I sleep." },
+    { kind: "break", cat: "Food and drink", name: "Weeknight drinking", identity: "I am someone who feels good in the morning", l1: "Keep alcohol out of the house on weekdays.", l2: "Remind myself of the flat, groggy mornings.", l3: "Make it a weekend-only plan so there is nothing to decide on a weeknight.", l4: "Tell a friend my rule and check in weekly." },
+    { kind: "break", cat: "Habits of mind", name: "Hitting snooze", identity: "I am someone who gets up when the alarm goes", l1: "Put the alarm across the room.", l2: "Remind myself that snoozing makes me more tired.", l3: "Keep it out of reach so I have to stand up.", l4: "Tell a friend my wake time and message them when I'm up." },
+    { kind: "break", cat: "Habits of mind", name: "Putting off the hardest task", identity: "I am someone who does the hard thing first", l1: "Write the hardest task on a sticky note and put it on my laptop.", l2: "Remind myself how much worse it feels to leave it hanging.", l3: "Block the first 25 minutes of the day for it.", l4: "Tell a colleague what I'm tackling and report back." },
+    { kind: "break", cat: "Habits of mind", name: "Negative self-talk", identity: "I am someone who speaks kindly to myself", l1: "Put a note on my mirror: Talk to yourself like a friend.", l2: "Notice how it drains my energy and never helps.", l3: "Pause and ask what I would say to a friend before I reply to myself.", l4: "Share my clean days with someone I trust." },
+    { kind: "break", cat: "Money", name: "Impulse online shopping", identity: "I am someone who spends on purpose", l1: "Delete saved cards and unsubscribe from sale emails.", l2: "Remind myself what the money could do instead.", l3: "Wait 48 hours before any purchase I hadn't planned.", l4: "Ask a friend to check my spending with me weekly." }
+  ];
+
+  // ---------- dates ----------
+  const iso = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const addDays = (s, n) => { const [y, m, d] = s.split("-").map(Number); return iso(new Date(y, m - 1, d + n)); };
+  const todayISO = () => iso(new Date());
+  const weekdayLetter = (s) => { const [y, m, d] = s.split("-").map(Number); return "SMTWTFS"[new Date(y, m - 1, d).getDay()]; };
+  const prettyDate = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short" }); };
+
+  // ---------- state ----------
+  let habits = new Map();
+  let mode = "connecting"; // connecting | db | local
+  let col = null;
+  const chains = new Map();
+  const LS_KEY = "atomic-habits-tracker-v1";
+  const LS_LOG = "atomic-habits-tracker-log-v1";
+  let log = [];
+  let view = "today";
+  let tlAll = false;
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const newId = () => "h" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 3200);
+  }
+
+  // ---------- stats ----------
+  function streak(h, today) {
+    const s = new Set(h.days || []);
+    let d = s.has(today) ? today : addDays(today, -1), n = 0;
+    while (s.has(d)) { n++; d = addDays(d, -1); }
+    return n;
+  }
+  function nudge(h, today) {
+    const s = new Set(h.days || []);
+    if (s.has(today)) return null;
+    const y = addDays(today, -1), y2 = addDays(today, -2);
+    if (!h.created || h.created > y) return null;
+    if (s.has(y)) return null;
+    if (s.has(y2) || h.created === y) return { cls: "warn", text: "Missed yesterday. Don't miss twice." };
+    return { cls: "fresh", text: "Fresh start. Today counts." };
+  }
+
+  // ---------- render ----------
+  const CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function habitHTML(h, today) {
+    const s = new Set(h.days || []);
+    const done = s.has(today);
+    const laws = LAWS[h.kind] || LAWS.build;
+    const cells = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = addDays(today, -i);
+      const on = s.has(d);
+      cells.push('<button type="button" class="cell' + (on ? " on" : "") + (i === 0 ? " today" : "") + '" data-act="day" data-id="' + esc(h.id) + '" data-date="' + d + '" aria-pressed="' + on + '" aria-label="' + esc(prettyDate(d)) + (on ? ", done" : ", not done") + '" title="' + esc(prettyDate(d)) + '"><i></i><small>' + weekdayLetter(d) + "</small></button>");
+    }
+    const n = nudge(h, today);
+    const lawItems = laws.map((l, i) => {
+      const v = h["l" + (i + 1)];
+      return "<div><dt>" + esc(l[0]) + "</dt><dd" + (v ? "" : ' class="empty"') + ">" + (v ? esc(v) : "Not planned yet") + "</dd></div>";
+    }).join("");
+    const label = h.kind === "break" ? (done ? "Clean today. Tap to undo." : "Mark today as a clean day") : (done ? "Done today. Tap to undo." : "Mark done today");
+    return '<article class="habit">' +
+      '<div class="habit-top">' +
+        '<button type="button" class="check" data-act="day" data-id="' + esc(h.id) + '" data-date="' + today + '" aria-pressed="' + done + '" aria-label="' + esc(label + ": " + h.name) + '">' + CHECK_SVG + "</button>" +
+        '<div style="min-width:0"><h3>' + esc(h.name) + "</h3>" + (h.identity ? '<p class="identity">' + esc(h.identity) + "</p>" : "") + "</div>" +
+        '<div class="stats"><div class="stat"><b>' + streak(h, today) + '</b><span>streak</span></div><div class="stat"><b>' + s.size + "</b><span>votes</span></div></div>" +
+      "</div>" +
+      '<div class="strip" role="group" aria-label="Last 14 days">' + cells.join("") + "</div>" +
+      (n ? '<span class="nudge ' + n.cls + '">' + esc(n.text) + "</span>" : "") +
+      '<div class="habit-foot"><details class="plan"><summary>Four-law plan</summary><dl class="laws">' + lawItems + "</dl></details>" +
+      '<button type="button" class="linkbtn" data-act="edit" data-id="' + esc(h.id) + '">Edit</button></div>' +
+    "</article>";
+  }
+
+  function render() {
+    const today = todayISO();
+    $("today-label").textContent = new Date().toLocaleDateString("en-IE", { weekday: "long", day: "numeric", month: "long" });
+    const all = [...habits.values()].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const build = all.filter((h) => h.kind !== "break");
+    const brk = all.filter((h) => h.kind === "break");
+
+    $("list-build").innerHTML = build.length ? build.map((h) => habitHTML(h, today)).join("") : '<p class="none">No habits to build yet. Add one with “Add a habit”.</p>';
+    $("list-break").innerHTML = brk.length ? brk.map((h) => habitHTML(h, today)).join("") : '<p class="none">No habits to break yet.</p>';
+
+    const empty = all.length === 0;
+    $("starter").hidden = !empty;
+    $("ledger-build").hidden = empty;
+    $("ledger-break").hidden = empty;
+
+    const ready = mode !== "connecting";
+    document.querySelectorAll(".chip").forEach((c) => { c.disabled = !ready; });
+    $("add-btn").disabled = !ready;
+    document.querySelectorAll(".tpl-open").forEach((c) => { c.disabled = !ready; });
+    $("connecting").hidden = ready;
+    if ($("tdlg").open) renderTemplates();
+
+    const doneToday = all.filter((h) => (h.days || []).includes(today)).length;
+    $("sum-today").textContent = doneToday + "/" + all.length;
+    const weekStart = addDays(today, -6);
+    $("sum-week").textContent = all.reduce((n, h) => n + (h.days || []).filter((d) => d >= weekStart && d <= today).length, 0);
+    $("sum-best").textContent = all.reduce((m, h) => Math.max(m, streak(h, today)), 0);
+
+    $("savenote").textContent = mode === "db" ? "Saved to your account and private to you. Anyone you share this page with gets their own blank tracker."
+      : mode === "local" ? "Saved on this phone. Your habits stay on this device and work offline."
+      : "";
+    if (view === "history") renderHistory();
+  }
+
+  function renderChips() {
+    const mk = (k) => STARTERS.map((s, i) => s.kind === k && s.feat ?'<button type="button" class="chip" data-kind="' + k + '" data-act="starter" data-i="' + i + '" disabled>' + esc(s.name) + "</button>" : "").join("");
+    $("chips-build").innerHTML = mk("build") + '<button type="button" class="chip" data-kind="build" data-act="custom" data-k="build" disabled>Write my own</button>';
+    $("chips-break").innerHTML = mk("break") + '<button type="button" class="chip" data-kind="break" data-act="custom" data-k="break" disabled>Write my own</button>';
+  }
+
+  // ---------- persistence ----------
+  function body(h) {
+    return { kind: h.kind, name: h.name, identity: h.identity || "", l1: h.l1 || "", l2: h.l2 || "", l3: h.l3 || "", l4: h.l4 || "", created: h.created, order: h.order || 0, days: [...(h.days || [])] };
+  }
+  function saveLocal() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify([...habits.values()])); } catch (e) { /* storage unavailable */ }
+  }
+  function loadLocal() {
+    try { const raw = localStorage.getItem(LS_KEY); if (raw) habits = new Map(JSON.parse(raw).map((h) => [h.id, h])); } catch (e) { /* ignore */ }
+    try { const raw = localStorage.getItem(LS_LOG); if (raw) log = JSON.parse(raw); } catch (e) { /* ignore */ }
+  }
+  function enqueue(id, fn) {
+    const prev = chains.get(id) || Promise.resolve();
+    const next = prev.then(fn).catch((e) => {
+      const code = e && e.code;
+      toast(code === "invalid_argument" ? "Couldn't save. You may only have view access to this page." : code === "quota_exceeded" ? "Storage is full. Delete a habit to make room." : "Couldn't save that change. Check your connection and try again.");
+    });
+    chains.set(id, next);
+  }
+  function persist(h) {
+    habits.set(h.id, h);
+    render();
+    if (mode === "db") enqueue(h.id, () => col.doc(h.id).set(body(h)));
+    else saveLocal();
+  }
+  function remove(id) {
+    habits.delete(id);
+    render();
+    if (mode === "db") enqueue(id, () => col.doc(id).delete());
+    else saveLocal();
+  }
+
+  // ---------- change log ----------
+  function saveLog() {
+    if (mode === "db") enqueue("_log", () => col.doc("_log").set({ entries: log }));
+    else { try { localStorage.setItem(LS_LOG, JSON.stringify(log)); } catch (e) { /* storage unavailable */ } }
+  }
+  function logEvent(type, h, detail) {
+    log = [{ ts: Date.now(), d: todayISO(), type, name: h.name, kind: h.kind, detail: detail || "" }, ...log].slice(0, 200);
+    saveLog();
+  }
+
+  // ---------- actions ----------
+  function toggleDay(id, date) {
+    const h = habits.get(id); if (!h) return;
+    if (date > todayISO()) return;
+    const s = new Set(h.days || []);
+    s.has(date) ? s.delete(date) : s.add(date);
+    persist({ ...h, days: [...s].sort() });
+  }
+  function addFrom(tpl, quiet) {
+    const h = { id: newId(), kind: tpl.kind, name: tpl.name, identity: tpl.identity, l1: tpl.l1, l2: tpl.l2, l3: tpl.l3, l4: tpl.l4, created: todayISO(), order: Date.now(), days: [] };
+    persist(h);
+    logEvent("add", h, "");
+    if (!quiet) toast("Added “" + h.name + "”. Edit it any time.");
+  }
+
+  // ---------- templates ----------
+  const tdlg = $("tdlg");
+  function tplHTML(s, i, have, ready) {
+    const laws = LAWS[s.kind].map((l, n) => "<div><dt>" + esc(l[0]) + "</dt><dd>" + esc(s["l" + (n + 1)]) + "</dd></div>").join("");
+    const added = have.has(s.name.trim().toLowerCase());
+    return '<div class="tpl" data-kind="' + s.kind + '"><div style="min-width:0"><h3>' + esc(s.name) + '</h3><p class="identity">' + esc(s.identity) + "</p></div>" +
+      '<button type="button" class="btn" data-act="tpl-add" data-i="' + i + '"' + (added || !ready ? " disabled" : "") + ">" + (added ? "Added" : "Add") + "</button>" +
+      '<details class="plan"><summary>See the plan</summary><dl class="laws">' + laws + "</dl></details></div>";
+  }
+  function renderTemplates() {
+    const kind = document.querySelector('input[name="tkind"]:checked').value;
+    const have = new Set([...habits.values()].map((h) => (h.name || "").trim().toLowerCase()));
+    const ready = mode !== "connecting";
+    const cats = [...new Set(STARTERS.filter((s) => s.kind === kind).map((s) => s.cat))];
+    const open = new Set([...document.querySelectorAll("#tpl-list details.plan[open]")].map((d) => d.closest(".tpl").querySelector("[data-i]").dataset.i));
+    $("tpl-list").innerHTML = cats.map((cat) => "<div><p class=\"tpl-cat\">" + esc(cat) + "</p>" +
+      STARTERS.map((s, i) => (s.kind === kind && s.cat === cat ? tplHTML(s, i, have, ready) : "")).join("") + "</div>").join("");
+    open.forEach((i) => { const b = document.querySelector('#tpl-list [data-i="' + i + '"]'); if (b) b.closest(".tpl").querySelector("details.plan").open = true; });
+  }
+  function openTemplates(kind) {
+    $("tkind-" + (kind || "build")).checked = true;
+    renderTemplates();
+    try { tdlg.showModal(); } catch (e) { tdlg.setAttribute("open", ""); }
+  }
+  document.querySelectorAll('input[name="tkind"]').forEach((r) => r.addEventListener("change", renderTemplates));
+  $("tclose-btn").addEventListener("click", () => { try { tdlg.close(); } catch (e) { tdlg.removeAttribute("open"); } });
+
+  // ---------- dialog ----------
+  const dlg = $("dlg"), form = $("form");
+  let editingId = null;
+
+  function setKindLabels(kind) {
+    LAWS[kind].forEach((l, i) => {
+      $("f-l" + (i + 1) + "-label").textContent = l[0];
+      $("f-l" + (i + 1) + "-help").textContent = l[1];
+      $("f-l" + (i + 1)).placeholder = l[2];
+    });
+    $("f-name").placeholder = kind === "break" ? "Phone in bed" : "Read one page";
+    $("f-name-label").textContent = kind === "break" ? "Habit to break" : "Habit to build";
+  }
+  function openForm(h, kind) {
+    editingId = h ? h.id : null;
+    const k = h ? h.kind : (kind || "build");
+    $("dlg-title").textContent = h ? "Edit habit" : "New habit";
+    $("kind-" + k).checked = true;
+    setKindLabels(k);
+    $("f-name").value = h ? h.name : "";
+    $("f-identity").value = h ? (h.identity || "") : "";
+    for (let i = 1; i <= 4; i++) $("f-l" + i).value = h ? (h["l" + i] || "") : "";
+    const del = $("del-btn");
+    del.hidden = !h; del.classList.remove("armed"); del.textContent = "Delete habit";
+    try { dlg.showModal(); } catch (e) { dlg.setAttribute("open", ""); }
+    $("f-name").focus();
+  }
+  function closeForm() { try { dlg.close(); } catch (e) { dlg.removeAttribute("open"); } }
+
+  form.addEventListener("change", (e) => { if (e.target.name === "kind") setKindLabels(e.target.value); });
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = $("f-name").value.trim();
+    if (!name) { $("f-name").focus(); toast("Give the habit a name first."); return; }
+    const kind = form.querySelector('input[name="kind"]:checked').value;
+    const base = editingId ? habits.get(editingId) : { id: newId(), created: todayISO(), order: Date.now(), days: [] };
+    const h = { ...base, kind, name, identity: $("f-identity").value.trim() };
+    for (let i = 1; i <= 4; i++) h["l" + i] = $("f-l" + i).value.trim();
+    const changes = [];
+    if (editingId) {
+      const o = base;
+      if (o.name !== h.name) changes.push("renamed from “" + o.name + "”");
+      if (o.kind !== h.kind) changes.push("moved to " + (h.kind === "break" ? "habits to break" : "habits to build"));
+      if ((o.identity || "") !== h.identity) changes.push(h.identity ? "identity now “" + h.identity + "”" : "identity cleared");
+      LAWS[h.kind].forEach((l, i) => { if ((o["l" + (i + 1)] || "") !== h["l" + (i + 1)]) changes.push("plan updated: " + l[0].toLowerCase()); });
+    }
+    persist(h);
+    if (!editingId) logEvent("add", h, "");
+    else if (changes.length) logEvent("edit", h, changes.join("; "));
+    closeForm();
+    toast(editingId ? (changes.length ? "Habit updated." : "No changes to save.") : "Habit added.");
+  });
+  $("cancel-btn").addEventListener("click", closeForm);
+  $("del-btn").addEventListener("click", (e) => {
+    const b = e.currentTarget;
+    if (!b.classList.contains("armed")) { b.classList.add("armed"); b.textContent = "Tap again to delete"; return; }
+    const h = habits.get(editingId);
+    if (h) logEvent("delete", h, (h.days || []).length + " votes recorded");
+    remove(editingId);
+    closeForm();
+    toast("Deleted “" + (h ? h.name : "habit") + "”.");
+  });
+
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-act]"); if (!t || t.disabled) return;
+    const act = t.dataset.act;
+    if (act === "day") toggleDay(t.dataset.id, t.dataset.date);
+    else if (act === "edit") openForm(habits.get(t.dataset.id));
+    else if (act === "starter") addFrom(STARTERS[+t.dataset.i]);
+    else if (act === "custom") openForm(null, t.dataset.k);
+    else if (act === "tpl-open") openTemplates(t.dataset.k);
+    else if (act === "tpl-add") addFrom(STARTERS[+t.dataset.i], true);
+    else if (act === "tab") setView(t.dataset.v);
+    else if (act === "tl-more") { tlAll = true; renderHistory(); }
+  });
+  $("add-btn").addEventListener("click", () => openForm(null, "build"));
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
+
+  // ---------- history ----------
+  const dow = (s) => { const [y, m, d] = s.split("-").map(Number); return (new Date(y, m - 1, d).getDay() + 6) % 7; };
+  const fmtShort = (s) => {
+    const [y, m, d] = s.split("-").map(Number);
+    const o = { day: "numeric", month: "short" };
+    if (y !== new Date().getFullYear()) o.year = "numeric";
+    return new Date(y, m - 1, d).toLocaleDateString("en-IE", o);
+  };
+  const startOf = (h) => { let s = h.created || todayISO(); (h.days || []).forEach((d) => { if (d < s) s = d; }); return s; };
+  const pct = (n, p) => (p ? Math.round((100 * n) / p) : null);
+
+  function setView(v) {
+    view = v;
+    $("view-today").hidden = v !== "today";
+    $("view-history").hidden = v !== "history";
+    $("tab-today").setAttribute("aria-selected", String(v === "today"));
+    $("tab-history").setAttribute("aria-selected", String(v === "history"));
+    if (v === "history") renderHistory();
+    window.scrollTo(0, 0);
+  }
+
+  function derivedEvents(h, today) {
+    const days = [...new Set(h.days || [])].sort();
+    const ev = [], MARKS = [7, 14, 30, 66, 100];
+    let len = 0, prev = null, best = 0;
+    const flush = () => {
+      if (len >= 3 && prev <= addDays(today, -2)) ev.push({ date: addDays(prev, 1), tag: "slip", name: h.name, text: len + "-day streak ended" });
+      best = Math.max(best, len);
+    };
+    days.forEach((d) => {
+      if (prev && addDays(prev, 1) === d) len++;
+      else { if (prev) flush(); len = 1; }
+      if (MARKS.includes(len)) ev.push({ date: d, tag: "streak", name: h.name, text: len + "-day streak" });
+      prev = d;
+    });
+    if (prev) flush();
+    [10, 25, 50, 100, 200].forEach((n) => { if (days.length >= n) ev.push({ date: days[n - 1], tag: "votes", name: h.name, text: n + " votes cast" }); });
+    return { ev, best };
+  }
+
+  function weeklyChart(weeks) {
+    const W = 480, H = 190, L = 36, R = 8, T = 16, B = 28;
+    const pw = W - L - R, ph = H - T - B, bw = pw / weeks.length, w = bw * 0.62;
+    let s = '<svg class="chart" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Weekly consistency over the last 12 weeks: ' +
+      weeks.map((k) => fmtShort(k.s) + " " + (k.rate === null ? "no data" : k.rate + " percent")).join(", ") + '">';
+    [0, 50, 100].forEach((g) => {
+      const y = T + ph - (g / 100) * ph;
+      s += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '"/><text x="' + (L - 6) + '" y="' + (y + 4) + '" text-anchor="end">' + g + (g ? "%" : "") + "</text>";
+    });
+    weeks.forEach((k, i) => {
+      const cx = L + bw * i + bw / 2;
+      if (k.rate !== null) {
+        const bh = Math.max(2, (k.rate / 100) * ph), y = T + ph - bh;
+        s += '<rect class="bar' + (k.partial ? " part" : "") + '" x="' + (cx - w / 2) + '" y="' + y + '" width="' + w + '" height="' + bh + '" rx="2"><title>Week of ' + esc(fmtShort(k.s)) + ": " + k.n + " of " + k.p + " planned days</title></rect>";
+        s += '<text class="val" x="' + cx + '" y="' + (y - 4) + '" text-anchor="middle">' + k.rate + "</text>";
+      }
+      if ((weeks.length - 1 - i) % 2 === 0) s += '<text x="' + cx + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(fmtShort(k.s).replace(/ \d{4}$/, "")) + "</text>";
+    });
+    return s + "</svg>";
+  }
+
+  function renderHistory() {
+    const today = todayISO();
+    const all = [...habits.values()].sort((a, b) => (a.kind === b.kind ? (a.order || 0) - (b.order || 0) : a.kind === "break" ? 1 : -1));
+    const has = all.length > 0 || log.length > 0;
+    $("hist-empty").hidden = has;
+    $("hist-main").hidden = !has;
+    if (!has) return;
+
+    const info = all.map((h) => ({ h, set: new Set(h.days || []), start: startOf(h) }));
+    const dayStat = (d) => { let p = 0, n = 0; info.forEach((x) => { if (x.start <= d) { p++; if (x.set.has(d)) n++; } }); return { p, n }; };
+    const range = (from, to) => { let p = 0, n = 0; for (let d = from; d <= to; d = addDays(d, 1)) { const t = dayStat(d); p += t.p; n += t.n; } return { p, n }; };
+
+    // events + best streak
+    const ev = [];
+    let best = 0;
+    info.forEach((x) => { const r = derivedEvents(x.h, today); best = Math.max(best, r.best); ev.push(...r.ev); });
+
+    // summary tiles
+    const last7 = range(addDays(today, -6), today), prev7 = range(addDays(today, -13), addDays(today, -7)), r30 = range(addDays(today, -29), today);
+    const dv = last7.n - prev7.n;
+    $("hs-votes").textContent = last7.n;
+    $("hs-votes-l").textContent = prev7.p
+      ? "votes in the last 7 days (" + (dv === 0 ? "same as the 7 before" : (dv > 0 ? "+" : "−") + Math.abs(dv) + " vs the 7 before") + ")"
+      : "votes in the last 7 days";
+    $("hs-rate").textContent = r30.p ? pct(r30.n, r30.p) + "%" : "–";
+    $("hs-best").textContent = best;
+
+    // weekly consistency
+    const ws0 = addDays(today, -dow(today));
+    const weeks = [];
+    for (let w = 11; w >= 0; w--) {
+      const s = addDays(ws0, -7 * w);
+      const r = range(s, addDays(s, 6) > today ? today : addDays(s, 6));
+      weeks.push({ s, p: r.p, n: r.n, rate: pct(r.n, r.p), partial: w === 0 });
+    }
+    $("week-chart").innerHTML = weeklyChart(weeks);
+    const cur = weeks[11], lastW = weeks[10];
+    $("week-cap").textContent = "Share of planned habit days you completed each week, by week starting Monday. This week so far: " +
+      (cur.rate === null ? "no data" : cur.rate + "%") + ". Last week: " + (lastW.rate === null ? "no data" : lastW.rate + "%") + ".";
+
+    // heatmap
+    let heat = "";
+    for (let w = 11; w >= 0; w--) {
+      for (let i = 0; i < 7; i++) {
+        const d = addDays(addDays(ws0, -7 * w), i);
+        if (d > today) { heat += '<i class="fut"></i>'; continue; }
+        const t = dayStat(d);
+        if (!t.p) { heat += '<i class="none" title="' + esc(prettyDate(d)) + ': no habits yet"></i>'; continue; }
+        const f = t.n / t.p;
+        heat += '<i' + (f > 0 ? ' class="on" style="background: color-mix(in srgb, var(--build) ' + Math.round(25 + f * 75) + '%, var(--surface))"' : "") + ' title="' + esc(prettyDate(d)) + ": " + t.n + " of " + t.p + ' done"></i>';
+      }
+    }
+    $("heat").innerHTML = heat;
+
+    // per-habit rows
+    $("hab-rows").innerHTML = info.length ? info.map((x) => {
+      const count = (from, to) => { let p = 0, n = 0; for (let d = from; d <= to; d = addDays(d, 1)) { if (d >= x.start) { p++; if (x.set.has(d)) n++; } } return { p, n }; };
+      const counts = [];
+      let bars = "";
+      for (let w = 11; w >= 0; w--) {
+        const s = addDays(ws0, -7 * w), e = addDays(s, 6) > today ? today : addDays(s, 6);
+        const c = count(s, e);
+        counts.push(c.n);
+        bars += c.n ? '<i style="height:' + Math.max(12, (c.n / 7) * 100) + '%" title="Week of ' + esc(fmtShort(s)) + ": " + c.n + ' days"></i>' : '<i class="z" title="Week of ' + esc(fmtShort(s)) + ': 0 days"></i>';
+      }
+      const l7 = count(addDays(today, -6), today), p7 = count(addDays(today, -13), addDays(today, -7)), r = count(addDays(today, -29), today);
+      let delta = "";
+      if (x.start <= addDays(today, -7)) {
+        const d = l7.n - p7.n;
+        delta = ' <span class="delta ' + (d > 0 ? "up" : d < 0 ? "down" : "") + '">' + (d === 0 ? "no change" : (d > 0 ? "+" : "−") + Math.abs(d)) + "</span>";
+      }
+      const run = derivedEvents(x.h, today).best;
+      return '<div class="hrow" data-kind="' + (x.h.kind === "break" ? "break" : "build") + '"><div class="hname">' + esc(x.h.name) + "</div>" +
+        '<div class="spark" role="img" aria-label="Days done per week, oldest to newest: ' + counts.join(", ") + '">' + bars + "</div>" +
+        '<div class="hstats"><span>Last 7 days <b>' + l7.n + "/" + l7.p + "</b>" + delta + "</span><span>Last 30 days <b>" + (r.p ? pct(r.n, r.p) + "%" : "–") + "</b></span><span>Best streak <b>" + run + "</b></span><span>Total votes <b>" + x.set.size + "</b></span></div></div>";
+    }).join("") : '<p class="none">No habits right now.</p>';
+
+    // timeline
+    const LOGTAG = { add: "good", edit: "edit", delete: "warn", streak: "good", votes: "good", slip: "warn" };
+    const TAGTXT = { add: "Added", edit: "Edited", delete: "Removed", streak: "Streak", votes: "Votes", slip: "Slip" };
+    log.forEach((e) => {
+      const verb = e.type === "add" ? "Started" : e.type === "delete" ? "Removed" : "Changed";
+      const detail = e.type === "add" ? (e.kind === "break" ? "Habit to break" : "Habit to build") : e.detail;
+      ev.push({ date: e.d, ts: e.ts, tag: e.type, text: verb + " “" + e.name + "”", detail });
+    });
+    ev.forEach((e) => { if (!e.text.startsWith("Started") && !e.text.startsWith("Removed") && !e.text.startsWith("Changed")) e.text = "“" + e.name + "”: " + e.text; });
+    ev.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : (b.ts || 0) - (a.ts || 0)));
+    const shown = tlAll ? ev : ev.slice(0, 25);
+    $("tl").innerHTML = shown.length ? shown.map((e) =>
+      '<li><span class="when">' + esc(fmtShort(e.date)) + '</span><span class="tag ' + LOGTAG[e.tag] + '">' + TAGTXT[e.tag] + '</span><span class="what">' + esc(e.text) + (e.detail ? "<small>" + esc(e.detail) + "</small>" : "") + "</span></li>"
+    ).join("") : '<li><span class="what">Nothing to show yet. Streaks of 7 days and more, vote milestones and habit edits will appear here.</span></li>';
+    $("tl-more").hidden = tlAll || ev.length <= 25;
+  }
+
+  // ---------- boot ----------
+  renderChips();
+  render();
+
+  function useLocal() { if (mode !== "connecting") return; mode = "local"; loadLocal(); render(); }
+
+  useLocal();
+})();
+</script>
+</body>
+</html>

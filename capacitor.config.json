@@ -1,0 +1,8 @@
+{
+  "appId": "com.ethanreilly.habittracker",
+  "appName": "Atomic Habits",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#F2F4F1"
+  }
+}
